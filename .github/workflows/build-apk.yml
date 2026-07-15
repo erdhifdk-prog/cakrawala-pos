@@ -28,6 +28,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Set API URL for APK
+        run: |
+          echo '// API Server URL untuk APK' > public/api-config.js
+          echo 'const API_SERVER = "https://kasir.internetproject.web.id";' >> public/api-config.js
+
       - name: Initialize Capacitor
         run: |
           npx cap init "Cakrawala POS" com.cakrawala.pos --web-dir public

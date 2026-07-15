@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://unpkg.com/idb@8.0.0/build/iife/index-min.js"></script>
+    <script src="/api-config.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { height: 100%; }
@@ -210,31 +211,14 @@
 
 <script>
 // ── Config ─────────────────────────────────────────────────
-// URL server untuk API calls
-// Di browser: gunakan origin yang sama
-// Di APK: gunakan URL server langsung
-const REMOTE_SERVER = 'https://kasir.internetproject.web.id';
+// API_SERVER di-load dari api-config.js
+// Untuk web: kosong (same origin)
+// Untuk APK: URL server
+const API_BASE_URL = (typeof API_SERVER !== 'undefined' && API_SERVER) 
+    ? API_SERVER 
+    : window.location.origin;
 
-const API_BASE_URL = (() => {
-    // Cek apakah di native app (Capacitor)
-    if (window.location.protocol === 'file:' || 
-        window.location.protocol === 'capacitor:' ||
-        window.Capacitor !== undefined) {
-        console.log('Mode: Native App → Remote Server');
-        return REMOTE_SERVER;
-    }
-    
-    // Cek apakah di localhost (development)
-    if (window.location.hostname === 'localhost' || 
-        window.location.hostname === '127.0.0.1') {
-        console.log('Mode: Localhost → Same Origin');
-        return window.location.origin;
-    }
-    
-    // Default: gunakan origin yang sama (production web)
-    console.log('Mode: Browser → Same Origin');
-    return window.location.origin;
-})();
+console.log('API_BASE_URL:', API_BASE_URL);
 
 // ── State ──────────────────────────────────────────────────
 let token = localStorage.getItem('cakrawala_token');

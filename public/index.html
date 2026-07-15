@@ -211,11 +211,24 @@
 <script>
 // ── Config ─────────────────────────────────────────────────
 const API_BASE_URL = (() => {
-    // Jika di Capacitor/native app, gunakan URL server
-    if (window.location.protocol === 'file:' || window.location.protocol === 'capacitor:') {
+    // Deteksi apakah running di Capacitor/native app
+    const isNativeApp = window.location.protocol === 'file:' || 
+                        window.location.protocol === 'capacitor:' ||
+                        window.location.protocol === 'https:' && window.location.hostname.includes('capacitor') ||
+                        navigator.userAgent.includes('Capacitor') ||
+                        window.Capacitor !== undefined;
+    
+    // Debug info
+    console.log('Protocol:', window.location.protocol);
+    console.log('Hostname:', window.location.hostname);
+    console.log('isNativeApp:', isNativeApp);
+    
+    if (isNativeApp) {
+        console.log('Running as native app → using remote server');
         return 'https://kasir.internetproject.web.id';
     }
-    // Jika di browser, gunakan origin yang sama
+    
+    console.log('Running in browser → using same origin');
     return window.location.origin;
 })();
 

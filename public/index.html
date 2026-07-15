@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <title>Cakrawala POS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/idb@8.0.0/build/iife/index-min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f3f4f6; }
+        #appLayout { display: flex; flex-direction: column; height: 100vh; }
+        .login-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-box { background: white; padding: 32px; border-radius: 16px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .login-logo { text-align: center; margin-bottom: 24px; }
+        .login-logo h1 { font-size: 24px; color: #4f46e5; }
+        .login-input { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+        .login-btn { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .login-error { color: #ef4444; font-size: 13px; margin-bottom: 12px; display: none; }
+        .app-layout { display: flex; flex: 1; min-height: 0; }
+        .sidebar { width: 240px; background: #1e1b4b; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .sidebar-header h2 { font-size: 18px; color: #a5b4fc; }
+        .sidebar-nav { flex: 1; overflow-y: auto; padding: 8px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; color: #c7d2fe; transition: all 0.2s; }
+        .nav-item:hover { background: rgba(255,255,255,0.1); }
+        .nav-item.active { background: #4f46e5; color: white; }
+        .nav-section { font-size: 11px; text-transform: uppercase; color: #6366f1; padding: 12px 12px 4px; font-weight: 600; }
+        .main-content { flex: 1; overflow-y: auto; padding: 24px; min-height: 0; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .page-header h2 { font-size: 24px; font-weight: 700; }
+        .btn { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 500; cursor: pointer; }
+        .btn-primary { background: #4f46e5; color: white; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #22c55e; color: white; }
+        .btn-secondary { background: #e5e7eb; color: #374151; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .stat-card .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+        .stat-card .stat-value { font-size: 24px; font-weight: 700; }
+        .stat-card .stat-label { font-size: 13px; color: #6b7280; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        tr:hover { background: #f9fafb; }
+        .badge { padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        .badge-green { background: #dcfce7; color: #166534; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-box { background: white; border-radius: 12px; padding: 24px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+        .form-input { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; }
+        .form-input:focus { outline: none; border-color: #4f46e5; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #1f2937; color: white; padding: 12px 20px; border-radius: 8px; font-size: 13px; z-index: 300; display: none; }
+        .toast.show { display: block; }
+        .camera-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 400; align-items: center; justify-content: center; }
+        .camera-modal.active { display: flex; }
+        .camera-box { background: white; border-radius: 12px; padding: 16px; width: 95%; max-width: 400px; }
+        .camera-preview { width: 100%; border-radius: 8px; overflow: hidden; background: #000; position: relative; }
+        .camera-preview video { width: 100%; display: block; }
+        .camera-btn-capture { background: #ef4444; color: white; width: 60px; height: 60px; border-radius: 50%; font-size: 24px; border: none; cursor: pointer; }
+        .image-preview { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; border: 2px solid #e5e7eb; }
+        .image-placeholder { width: 80px; height: 80px; border-radius: 8px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 24px; border: 2px dashed #e5e7eb; cursor: pointer; }
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(20px); } 10% { opacity: 1; transform: translateY(0); } 90% { opacity: 1; } 100% { opacity: 0; } }
+        @media (max-width: 768px) { 
+            .sidebar { display: none; } 
+            .main-content { padding: 12px; max-height: calc(100vh - 48px); } 
+            .mobile-header { display: flex !important; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <div class="login-logo"><h1>🌅 Cakrawala POS</h1><p>Sistem Point of Sale untuk UMKM</p></div>
+            <div id="loginError" class="login-error"></div>
+            <input type="email" id="loginEmail" class="login-input" placeholder="Email">
+            <input type="password" id="loginPassword" class="login-input" placeholder="Password">
+            <button class="login-btn" onclick="doLogin()">Masuk</button>
+        </div>
+    </div>
+
+    <!-- App Layout -->
+    <div id="appLayout" style="display:none">
+        <!-- Mobile Header -->
+        <header class="mobile-header" style="display:none;background:#1e1b4b;color:white;padding:12px 16px;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50">
+            <button onclick="toggleMobileMenu()" style="background:none;border:none;color:white;font-size:24px;cursor:pointer">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div style="display:flex;align-items:center;gap:8px">
+                <h2 style="font-size:16px;margin:0">🌅 Cakrawala POS</h2>
+                <span id="offlineIndicator" style="display:none;background:#ef4444;color:white;padding:2px 6px;border-radius:4px;font-size:10px">OFFLINE</span>
+            </div>
+            <button onclick="doLogout()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </header>
+        
+        <div class="app-layout">
+        
+        <!-- Mobile Menu Overlay -->
+        <div id="mobileMenu" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100" onclick="toggleMobileMenu()">
+            <div style="position:absolute;top:0;left:0;bottom:0;width:280px;background:#1e1b4b;overflow-y:auto" onclick="event.stopPropagation()">
+                <div style="padding:20px;border-bottom:1px solid rgba(255,255,255,0.1)">
+                    <h2 style="color:#a5b4fc;margin:0">🌅 Cakrawala POS</h2>
+                    <small id="mobileSidebarUser" style="color:#a5b4fc"></small>
+                </div>
+                <nav style="padding:8px">
+                    <div class="nav-section">Menu Utama</div>
+                    <div class="nav-item active" onclick="showPage('dashboard');toggleMobileMenu()"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+                    <div class="nav-item" onclick="showPage('pos');toggleMobileMenu()"><i class="fas fa-cash-register"></i> Kasir (POS)</div>
+                    <div class="nav-section">Manajemen</div>
+                    <div class="nav-item" onclick="showPage('products');toggleMobileMenu()"><i class="fas fa-box"></i> Produk</div>
+                    <div class="nav-item" onclick="showPage('categories');toggleMobileMenu()"><i class="fas fa-tags"></i> Kategori</div>
+                    <div class="nav-item" onclick="showPage('customers');toggleMobileMenu()"><i class="fas fa-users"></i> Pelanggan</div>
+                    <div class="nav-item" onclick="showPage('suppliers');toggleMobileMenu()"><i class="fas fa-truck"></i> Supplier</div>
+                    <div class="nav-section">Transaksi</div>
+                    <div class="nav-item" onclick="showPage('transactions');toggleMobileMenu()"><i class="fas fa-receipt"></i> Riwayat Transaksi</div>
+                    <div class="nav-item" onclick="showPage('receivables');toggleMobileMenu()"><i class="fas fa-file-invoice-dollar"></i> Piutang</div>
+                    <div class="nav-item" onclick="showPage('payables');toggleMobileMenu()"><i class="fas fa-file-invoice"></i> Hutang</div>
+                    <div class="nav-section">Inventori</div>
+                    <div class="nav-item" onclick="showPage('warehouses');toggleMobileMenu()"><i class="fas fa-warehouse"></i> Gudang</div>
+                    <div class="nav-item" onclick="showPage('stock-opname');toggleMobileMenu()"><i class="fas fa-clipboard-check"></i> Stok Opname</div>
+                    <div class="nav-section">Laporan & Pengaturan</div>
+                    <div class="nav-item" onclick="showPage('reports');toggleMobileMenu()"><i class="fas fa-chart-bar"></i> Laporan</div>
+                    <div class="nav-item" onclick="showPage('settings');toggleMobileMenu()"><i class="fas fa-cog"></i> Pengaturan</div>
+                    <div class="nav-item" onclick="showPage('users');toggleMobileMenu()"><i class="fas fa-user-cog"></i> User Management</div>
+                    <div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:8px;padding-top:8px">
+                        <div class="nav-item" onclick="doLogout()" style="color:#ef4444"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <aside class="sidebar">
+            <div class="sidebar-header"><h2>🌅 Cakrawala POS</h2><small id="sidebarUser" style="color:#a5b4fc"></small></div>
+            <nav class="sidebar-nav">
+                <div class="nav-section">Menu Utama</div>
+                <div class="nav-item active" onclick="showPage('dashboard')"><i class="fas fa-tachometer-alt"></i> Dashboard</div>
+                <div class="nav-item" onclick="showPage('pos')"><i class="fas fa-cash-register"></i> Kasir (POS)</div>
+                <div class="nav-section">Manajemen</div>
+                <div class="nav-item" onclick="showPage('products')"><i class="fas fa-box"></i> Produk</div>
+                <div class="nav-item" onclick="showPage('categories')"><i class="fas fa-tags"></i> Kategori</div>
+                <div class="nav-item" onclick="showPage('customers')"><i class="fas fa-users"></i> Pelanggan</div>
+                <div class="nav-item" onclick="showPage('suppliers')"><i class="fas fa-truck"></i> Supplier</div>
+                <div class="nav-section">Transaksi</div>
+                <div class="nav-item" onclick="showPage('transactions')"><i class="fas fa-receipt"></i> Riwayat Transaksi</div>
+                <div class="nav-item" onclick="showPage('receivables')"><i class="fas fa-file-invoice-dollar"></i> Piutang</div>
+                <div class="nav-item" onclick="showPage('payables')"><i class="fas fa-file-invoice"></i> Hutang</div>
+                <div class="nav-section">Inventori</div>
+                <div class="nav-item" onclick="showPage('warehouses')"><i class="fas fa-warehouse"></i> Gudang</div>
+                <div class="nav-item" onclick="showPage('stock-opname')"><i class="fas fa-clipboard-check"></i> Stok Opname</div>
+                <div class="nav-section">Laporan</div>
+                <div class="nav-item" onclick="showPage('reports')"><i class="fas fa-chart-bar"></i> Laporan</div>
+                <div class="nav-section">Pengaturan</div>
+                <div class="nav-item" onclick="showPage('settings')"><i class="fas fa-cog"></i> Pengaturan</div>
+                <div class="nav-item" onclick="showPage('users')"><i class="fas fa-user-cog"></i> User Management</div>
+                <div class="nav-item" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+            </nav>
+        </aside>
+        <main class="main-content" id="mainContent"></main>
+    </div><!-- /.app-layout -->
+    </div><!-- /#appLayout -->
+
+    <!-- Modals -->
+    <div id="productModal" class="modal"><div class="modal-box" id="productModalContent"></div></div>
+    <div id="customerModal" class="modal"><div class="modal-box" id="customerModalContent"></div></div>
+    <div id="checkoutModal" class="modal"><div class="modal-box" id="checkoutModalContent"></div></div>
+    
+    <!-- Camera Modal (Barcode & Photo) -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-box">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 id="cameraTitle">Scan Barcode</h3>
+                <button onclick="closeCamera()" style="background:none;border:none;font-size:20px;cursor:pointer">&times;</button>
+            </div>
+            <div class="camera-preview">
+                <video id="cameraVideo" autoplay playsinline></video>
+                <div id="barcodeScanner" style="width:100%;min-height:300px"></div>
+                <canvas id="cameraCanvas" style="display:none"></canvas>
+            </div>
+            <div style="display:flex;justify-content:center;gap:12px;margin-top:12px">
+                <button id="cameraCapture" class="camera-btn-capture" onclick="capturePhoto()">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <div id="barcodeResult" style="margin-top:12px;text-align:center;display:none">
+                <p style="font-size:13px;color:#6b7280">Barcode terdeteksi:</p>
+                <p id="barcodeValue" style="font-size:18px;font-weight:700;font-family:monospace"></p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let token = localStorage.getItem('cakrawala_token');
+let user = JSON.parse(localStorage.getItem('cakrawala_user') || 'null');
+let currentPage = 'dashboard';
+let products = [], categories = [], customers = [], transactions = [], suppliers = [], warehouses = [], receivables = [], payables = [];
+let cart = [], selectedCategory = null;
+
+// ── API Helper ─────────────────────────────────────────────
+async function api(path, opts = {}) {
+    const res = await fetch('/api' + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...opts.headers } });
+    if (res.status === 401) { doLogout(); return null; }
+    const text = await res.text();
+    try { return JSON.parse(text); } catch { return text; }
+}
+
+// ── Offline Support ────────────────────────────────────────
+const DB_NAME = 'cakrawala-pos';
+const DB_VERSION = 1;
+let offlineDb = null;
+let isOnline = navigator.onLine;
+
+// Initialize IndexedDB
+async function initOfflineDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => { offlineDb = request.result; resolve(offlineDb); };
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('products')) db.createObjectStore('products', { keyPath: 'id' });
+            if (!db.objectStoreNames.contains('customers')) db.createObjectStore('customers', { keyPath: 'id' });
+            if (!db.objectStoreNames.contains('transactions')) db.createObjectStore('transactions', { keyPath: 'id', autoIncrement: true });
+            if (!db.objectStoreNames.contains('sync_queue')) db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true });
+        };
+    });
+}
+
+// Save to IndexedDB
+async function saveToStore(storeName, data) {
+    if (!offlineDb) await initOfflineDb();
+    return new Promise((resolve, reject) => {
+        const tx = offlineDb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const request = store.put(data);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Get from IndexedDB
+async function getFromStore(storeName) {
+    if (!offlineDb) await initOfflineDb();
+    return new Promise((resolve, reject) => {
+        const tx = offlineDb.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Queue transaction for sync
+async function queueTransaction(transaction) {
+    if (!offlineDb) await initOfflineDb();
+    return new Promise((resolve, reject) => {
+        const tx = offlineDb.transaction('sync_queue', 'readwrite');
+        const store = tx.objectStore('sync_queue');
+        const request = store.add({ ...transaction, created_at: new Date().toISOString(), synced: false });
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Sync pending transactions
+async function syncPendingTransactions() {
+    if (!isOnline) return;
+    
+    const pending = await getFromStore('sync_queue');
+    const unsynced = pending.filter(t => !t.synced);
+    
+    for (const tx of unsynced) {
+        try {
+            const result = await api('/transactions', { method: 'POST', body: JSON.stringify(tx) });
+            if (result?.invoice) {
+                // Mark as synced
+                await saveToStore('sync_queue', { ...tx, synced: true, invoice: result.invoice });
+                console.log('Synced:', result.invoice);
+            }
+        } catch (err) {
+            console.error('Sync failed:', err);
+        }
+    }
+}
+
+// Listen for online/offline events
+window.addEventListener('online', () => { 
+    isOnline = true; 
+    document.getElementById('offlineIndicator').style.display = 'none';
+    showToast('Kembali online! Sync transaksi...');
+    syncPendingTransactions(); 
+});
+window.addEventListener('offline', () => { 
+    isOnline = false; 
+    document.getElementById('offlineIndicator').style.display = 'inline';
+    showToast('Mode offline - transaksi akan disimpan lokal');
+});
+
+// Initialize offline DB on load
+initOfflineDb().catch(console.error);
+
+// ── Auth ───────────────────────────────────────────────────
+async function doLogin() {
+    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value }) });
+    if (data?.token) { token = data.token; user = data.user; localStorage.setItem('cakrawala_token', token); localStorage.setItem('cakrawala_user', JSON.stringify(user)); initApp(); }
+    else { document.getElementById('loginError').textContent = 'Email atau password salah'; document.getElementById('loginError').style.display = 'block'; }
+}
+function doLogout() { token = null; user = null; localStorage.clear(); document.getElementById('loginPage').style.display = 'flex'; document.getElementById('appLayout').style.display = 'none'; }
+
+// Mobile menu toggle
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// Detect mobile and show mobile header
+function checkMobile() {
+    const mobileHeader = document.querySelector('.mobile-header');
+    if (mobileHeader) {
+        mobileHeader.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    }
+}
+
+// Run on load and resize
+window.addEventListener('resize', checkMobile);
+
+// ── Init App ───────────────────────────────────────────────
+async function initApp() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appLayout').style.display = 'flex';
+    document.getElementById('sidebarUser').textContent = user?.name || '';
+    const mobileUser = document.getElementById('mobileSidebarUser');
+    if (mobileUser) mobileUser.textContent = user?.name || '';
+    checkMobile();
+    showPage('dashboard');
+}
+
+// ── Router ─────────────────────────────────────────────────
+function showPage(page) {
+    currentPage = page;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event?.target?.closest('.nav-item')?.classList.add('active');
+    const renderers = { dashboard: renderDashboard, pos: renderPOS, products: renderProducts, categories: renderCategories, customers: renderCustomers, suppliers: renderSuppliers, transactions: renderTransactions, receivables: renderReceivables, payables: renderPayables, warehouses: renderWarehouses, 'stock-opname': renderStockOpname, reports: renderReports, settings: renderSettings, users: renderUsers };
+    (renderers[page] || renderDashboard)();
+}
+
+// ── Dashboard ──────────────────────────────────────────────
+async function renderDashboard() {
+    const stats = await api('/reports/dashboard');
+    const s = stats || {};
+    const today = s.today_sales || {};
+    const month = s.month_sales || {};
+    const recent = s.recent_transactions || [];
+    const top = s.top_products || [];
+    
+    document.getElementById('mainContent').innerHTML = `
+        <div class="page-header">
+            <div>
+                <h2>Dashboard</h2>
+                <p style="color:#6b7280;font-size:13px;margin-top:4px">Ringkasan bisnis hari ini</p>
+            </div>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-primary" onclick="showPage('pos')"><i class="fas fa-cash-register"></i> Buka Kasir</button>
+            </div>
+        </div>
+        
+        <!-- Stat Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="fas fa-shopping-cart"></i></div>
+                    <span style="font-size:12px;color:#6b7280">Hari Ini</span>
+                </div>
+                <div class="stat-value" style="margin-top:8px">${today.count || 0}</div>
+                <div class="stat-label">Transaksi</div>
+            </div>
+            <div class="stat-card">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="fas fa-money-bill-wave"></i></div>
+                    <span style="font-size:12px;color:#6b7280">Hari Ini</span>
+                </div>
+                <div class="stat-value" style="margin-top:8px">Rp ${(today.total || 0).toLocaleString('id-ID')}</div>
+                <div class="stat-label">Omzet</div>
+            </div>
+            <div class="stat-card">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="fas fa-chart-line"></i></div>
+                    <span style="font-size:12px;color:#6b7280">Bulan Ini</span>
+                </div>
+                <div class="stat-value" style="margin-top:8px">Rp ${(month.total || 0).toLocaleString('id-ID')}</div>
+                <div class="stat-label">Omzet Bulanan</div>
+            </div>
+            <div class="stat-card">
+                <div style="display:flex;justify-content:space-between;align-items:start">
+                    <div class="stat-icon" style="background:#d1fae5;color:#059669"><i class="fas fa-piggy-bank"></i></div>
+                    <span style="font-size:12px;color:#6b7280">Total</span>
+                </div>
+                <div class="stat-value" style="margin-top:8px">Rp ${(s.total_profit || 0).toLocaleString('id-ID')}</div>
+                <div class="stat-label">Profit</div>
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px">
+            <div class="card" style="padding:12px;text-align:center">
+                <div style="font-size:24px;font-weight:700;color:#4f46e5">${s.total_products || 0}</div>
+                <div style="font-size:12px;color:#6b7280">Produk</div>
+            </div>
+            <div class="card" style="padding:12px;text-align:center">
+                <div style="font-size:24px;font-weight:700;color:#2563eb">${s.total_customers || 0}</div>
+                <div style="font-size:12px;color:#6b7280">Pelanggan</div>
+            </div>
+            <div class="card" style="padding:12px;text-align:center">
+                <div style="font-size:24px;font-weight:700;color:${(s.low_stock_count || 0) > 0 ? '#ef4444' : '#16a34a'}">${s.low_stock_count || 0}</div>
+                <div style="font-size:12px;color:#6b7280">Stok Rendah</div>
+            </div>
+            <div class="card" style="padding:12px;text-align:center">
+                <div style="font-size:24px;font-weight:700;color:#d97706">${month.count || 0}</div>
+                <div style="font-size:12px;color:#6b7280">Transaksi/Bulan</div>
+            </div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <!-- Top Products -->
+            <div class="card">
+                <h3 style="margin-bottom:12px"><i class="fas fa-trophy" style="color:#d97706;margin-right:8px"></i>Produk Terlaris</h3>
+                ${top.length > 0 ? `
+                    <table><thead><tr><th>Produk</th><th>Terjual</th><th>Revenue</th></tr></thead>
+                    <tbody>${top.map((p, i) => `<tr>
+                        <td><span style="color:#6b7280;margin-right:8px">#${i+1}</span>${p.title}</td>
+                        <td>${p.total_qty}x</td>
+                        <td>Rp ${(p.total_revenue||0).toLocaleString('id-ID')}</td>
+                    </tr>`).join('')}</tbody></table>
+                ` : '<p style="color:#9ca3af;text-align:center;padding:20px">Belum ada data</p>'}
+            </div>
+            
+            <!-- Recent Transactions -->
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                    <h3><i class="fas fa-clock" style="color:#6b7280;margin-right:8px"></i>Transaksi Terakhir</h3>
+                    <a href="#" onclick="showPage('transactions');return false" style="font-size:12px;color:#4f46e5">Lihat Semua →</a>
+                </div>
+                ${recent.length > 0 ? `
+                    <table><thead><tr><th>Invoice</th><th>Total</th><th>Waktu</th></tr></thead>
+                    <tbody>${recent.map(t => `<tr>
+                        <td><span style="font-family:monospace;font-size:12px">${t.invoice}</span></td>
+                        <td style="font-weight:600">Rp ${(t.grand_total||0).toLocaleString('id-ID')}</td>
+                        <td style="font-size:12px;color:#6b7280">${new Date(t.created_at).toLocaleString('id-ID')}</td>
+                    </tr>`).join('')}</tbody></table>
+                ` : '<p style="color:#9ca3af;text-align:center;padding:20px">Belum ada transaksi</p>'}
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card" style="margin-top:16px">
+            <h3 style="margin-bottom:12px"><i class="fas fa-bolt" style="color:#d97706;margin-right:8px"></i>Aksi Cepat</h3>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="showPage('pos')"><i class="fas fa-cash-register"></i> Buka Kasir</button>
+                <button class="btn btn-secondary" onclick="showPage('products')"><i class="fas fa-box"></i> Kelola Produk</button>
+                <button class="btn btn-secondary" onclick="showPage('customers')"><i class="fas fa-users"></i> Kelola Pelanggan</button>
+                <button class="btn btn-secondary" onclick="showPage('transactions')"><i class="fas fa-receipt"></i> Riwayat Transaksi</button>
+                <button class="btn btn-secondary" onclick="showPage('reports')"><i class="fas fa-chart-bar"></i> Laporan</button>
+            </div>
+        </div>`;
+}
+
+// ── Products ───────────────────────────────────────────────
+async function renderProducts() {
+    [products, categories] = await Promise.all([api('/products'), api('/products/categories/all')]);
+    document.getElementById('mainContent').innerHTML = `
+        <div class="page-header"><h2>Produk</h2><button class="btn btn-primary" onclick="showProductModal()"><i class="fas fa-plus"></i> Tambah Produk</button></div>
+        <div class="card"><input type="text" class="form-input" placeholder="Cari produk..." oninput="filterProducts(this.value)">
+        <table style="margin-top:12px"><thead><tr><th style="width:50px">Foto</th><th>Nama</th><th>Kategori</th><th>Harga Beli</th><th>Harga Jual</th><th>Stok</th><th>Aksi</th></tr></thead>
+        <tbody id="productsTable">${products.map(p => {
+            const initial = (p.title || '?')[0].toUpperCase();
+            const colors = ['#4f46e5','#2563eb','#059669','#d97706','#dc2626','#7c3aed','#db2777','#0891b2'];
+            const color = colors[p.id % colors.length];
+            return `<tr>
+                <td>${p.image ? `<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px">` : `<div style="width:40px;height:40px;border-radius:6px;background:${color};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white">${initial}</div>`}</td>
+                <td>${p.title}</td>
+                <td>${p.category_name || '-'}</td>
+                <td>Rp ${(p.buy_price||0).toLocaleString('id-ID')}</td>
+                <td>Rp ${(p.sell_price||0).toLocaleString('id-ID')}</td>
+                <td><span class="badge ${p.stock <= 5 ? 'badge-red' : 'badge-green'}">${p.stock}</span></td>
+                <td><button class="btn btn-secondary" onclick="editProduct(${p.id})">Edit</button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})">Hapus</button></td>
+            </tr>`;
+        }).join('')}</tbody></table></div>`;
+}
+function filterProducts(q) { 
+    const f = products.filter(p => p.title.toLowerCase().includes(q.toLowerCase()) || (p.barcode||'').includes(q)); 
+    document.getElementById('productsTable').innerHTML = f.map(p => {
+        const initial = (p.title || '?')[0].toUpperCase();
+        const colors = ['#4f46e5','#2563eb','#059669','#d97706','#dc2626','#7c3aed','#db2777','#0891b2'];
+        const color = colors[p.id % colors.length];
+        return `<tr>
+            <td>${p.image ? `<img src="${p.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px">` : `<div style="width:40px;height:40px;border-radius:6px;background:${color};display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white">${initial}</div>`}</td>
+            <td>${p.title}</td>
+            <td>${p.category_name || '-'}</td>
+            <td>Rp ${(p.buy_price||0).toLocaleString('id-ID')}</td>
+            <td>Rp ${(p.sell_price||0).toLocaleString('id-ID')}</td>
+            <td><span class="badge ${p.stock <= 5 ? 'badge-red' : 'badge-green'}">${p.stock}</span></td>
+            <td><button class="btn btn-secondary" onclick="editProduct(${p.id})">Edit</button> <button class="btn btn-danger" onclick="deleteProduct(${p.id})">Hapus</button></td>
+        </tr>`;
+    }).join(''); 
+}
+function showProductModal(p = null) {
+    const currentImage = p?.image || '';
+    document.getElementById('productModalContent').innerHTML = `<h3 style="margin-bottom:16px">${p ? 'Edit' : 'Tambah'} Produk</h3>
+        
+        <!-- Gambar Produk -->
+        <div class="form-group">
+            <label>Gambar Produk</label>
+            <div style="display:flex;gap:12px;align-items:center">
+                <div id="pImagePreviewContainer">
+                    ${currentImage ? 
+                        `<img id="pImagePreview" src="${currentImage}" class="image-preview">` : 
+                        `<img id="pImagePreview" src="" class="image-preview" style="display:none">
+                         <div id="pImagePlaceholder" class="image-placeholder" onclick="openCamera('photo')"><i class="fas fa-camera"></i></div>`
+                    }
+                </div>
+                <input type="hidden" id="pImageData" value="">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                    <button type="button" class="btn btn-secondary" onclick="openCamera('photo')"><i class="fas fa-camera"></i> Foto</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('pImageFile').click()"><i class="fas fa-upload"></i> Upload</button>
+                    <input type="file" id="pImageFile" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Barcode dengan Scan -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>Barcode</label>
+                <div style="display:flex;gap:8px">
+                    <input class="form-input" id="pBarcode" value="${p?.barcode || ''}" style="flex:1">
+                    <button type="button" class="btn btn-secondary" onclick="openCamera('barcode')"><i class="fas fa-camera"></i> Scan</button>
+                </div>
+            </div>
+            <div class="form-group"><label>SKU</label><input class="form-input" id="pSku" value="${p?.sku || ''}"></div>
+        </div>
+        
+        <div class="form-group"><label>Nama Produk *</label><input class="form-input" id="pTitle" value="${p?.title || ''}" required></div>
+        <div class="form-group"><label>Deskripsi</label><input class="form-input" id="pDesc" value="${p?.description || ''}"></div>
+        <div class="form-row"><div class="form-group"><label>Harga Beli</label><input class="form-input" id="pBuyPrice" type="number" value="${p?.buy_price || 0}"></div><div class="form-group"><label>Harga Jual</label><input class="form-input" id="pSellPrice" type="number" value="${p?.sell_price || 0}"></div></div>
+        <div class="form-row"><div class="form-group"><label>Stok</label><input class="form-input" id="pStock" type="number" value="${p?.stock || 0}"></div><div class="form-group"><label>Min Stok</label><input class="form-input" id="pMinStock" type="number" value="${p?.min_stock || 0}"></div></div>
+        <div class="form-row"><div class="form-group"><label>Max Stok</label><input class="form-input" id="pMaxStock" type="number" value="${p?.max_stock || 0}"></div><div class="form-group"><label>Kategori</label><select class="form-input" id="pCategoryId"><option value="">Pilih</option>${categories.map(c => `<option value="${c.id}" ${p?.category_id == c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div></div>
+        <div class="form-row"><div class="form-group"><label>Tax Type</label><select class="form-input" id="pTaxType"><option value="exclusive" ${p?.tax_type == 'exclusive' ? 'selected' : ''}>Exclusive</option><option value="inclusive" ${p?.tax_type == 'inclusive' ? 'selected' : ''}>Inclusive</option></select></div><div class="form-group"><label>Tax Rate (%)</label><input class="form-input" id="pTaxRate" type="number" value="${p?.tax_rate || 11}"></div></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('productModal')">Batal</button><button class="btn btn-primary" onclick="saveProduct(${p?.id || 'null'})">Simpan</button></div>`;
+    document.getElementById('productModal').classList.add('active');
+}
+
+// Handle image upload from file
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Resize
+            const maxSize = 800;
+            let width = img.width;
+            let height = img.height;
+            
+            if (width > maxSize || height > maxSize) {
+                if (width > height) {
+                    height = Math.round(height * maxSize / width);
+                    width = maxSize;
+                } else {
+                    width = Math.round(width * maxSize / height);
+                    height = maxSize;
+                }
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            
+            const preview = document.getElementById('pImagePreview');
+            const placeholder = document.getElementById('pImagePlaceholder');
+            if (preview) {
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+            }
+            if (placeholder) placeholder.style.display = 'none';
+            
+            document.getElementById('pImageData').value = dataUrl;
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+async function saveProduct(id) {
+    const data = { 
+        barcode: gv('pBarcode'), 
+        sku: gv('pSku'), 
+        title: gv('pTitle'), 
+        description: gv('pDesc'), 
+        image: gv('pImageData') || (id ? products.find(p => p.id === id)?.image : '') || '',
+        buy_price: parseInt(gv('pBuyPrice')), 
+        sell_price: parseInt(gv('pSellPrice')), 
+        stock: parseInt(gv('pStock')), 
+        min_stock: parseInt(gv('pMinStock')), 
+        max_stock: parseInt(gv('pMaxStock')), 
+        category_id: gv('pCategoryId'), 
+        tax_type: gv('pTaxType'), 
+        tax_rate: parseFloat(gv('pTaxRate')) 
+    };
+    if (!data.title) return showToast('Nama produk wajib!');
+    if (id) await api('/products/' + id, { method: 'PUT', body: JSON.stringify(data) }); else await api('/products', { method: 'POST', body: JSON.stringify(data) });
+    closeModal('productModal'); renderProducts(); showToast('Produk disimpan!');
+}
+async function editProduct(id) { const p = products.find(x => x.id === id); if (p) showProductModal(p); }
+async function deleteProduct(id) { if (!confirm('Hapus produk ini?')) return; await api('/products/' + id, { method: 'DELETE' }); renderProducts(); showToast('Produk dihapus!'); }
+
+// ── Categories ─────────────────────────────────────────────
+async function renderCategories() {
+    categories = await api('/products/categories/all');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Kategori</h2><button class="btn btn-primary" onclick="showCategoryModal()"><i class="fas fa-plus"></i> Tambah</button></div><div class="card"><table><thead><tr><th>Nama</th><th>Deskripsi</th><th>Aksi</th></tr></thead><tbody>${categories.map(c => `<tr><td>${c.name}</td><td>${c.description || '-'}</td><td><button class="btn btn-danger" onclick="deleteCategory(${c.id})">Hapus</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function showCategoryModal() { document.getElementById('productModalContent').innerHTML = `<h3 style="margin-bottom:16px">Tambah Kategori</h3><div class="form-group"><label>Nama *</label><input class="form-input" id="catName"></div><div class="form-group"><label>Deskripsi</label><input class="form-input" id="catDesc"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('productModal')">Batal</button><button class="btn btn-primary" onclick="saveCategory()">Simpan</button></div>`; document.getElementById('productModal').classList.add('active'); }
+async function saveCategory() { const name = gv('catName'); if (!name) return showToast('Nama wajib!'); await api('/products/categories', { method: 'POST', body: JSON.stringify({ name, description: gv('catDesc') }) }); closeModal('productModal'); renderCategories(); showToast('Kategori ditambahkan!'); }
+async function deleteCategory(id) { if (!confirm('Hapus?')) return; await api('/products/categories/' + id, { method: 'DELETE' }); renderCategories(); showToast('Dihapus!'); }
+
+// ── Customers ──────────────────────────────────────────────
+async function renderCustomers() {
+    customers = await api('/customers');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Pelanggan</h2><button class="btn btn-primary" onclick="showCustomerModal()"><i class="fas fa-plus"></i> Tambah</button></div><div class="card"><table><thead><tr><th>Nama</th><th>Telepon</th><th>Alamat</th><th>Loyalty</th><th>Poin</th><th>Aksi</th></tr></thead><tbody>${customers.map(c => `<tr><td>${c.name}</td><td>${c.no_telp || '-'}</td><td>${c.address || '-'}</td><td><span class="badge ${c.is_loyalty_member ? 'badge-green' : 'badge-yellow'}">${c.is_loyalty_member ? 'Member' : 'Umum'}</span></td><td>${c.loyalty_points || 0}</td><td><button class="btn btn-secondary" onclick="editCustomer(${c.id})">Edit</button> <button class="btn btn-danger" onclick="deleteCustomer(${c.id})">Hapus</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function showCustomerModal(c = null) { document.getElementById('customerModalContent').innerHTML = `<h3 style="margin-bottom:16px">${c ? 'Edit' : 'Tambah'} Pelanggan</h3><div class="form-group"><label>Nama *</label><input class="form-input" id="cName" value="${c?.name || ''}"></div><div class="form-row"><div class="form-group"><label>Telepon</label><input class="form-input" id="cPhone" value="${c?.no_telp || ''}"></div><div class="form-group"><label>Alamat</label><input class="form-input" id="cAddress" value="${c?.address || ''}"></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('customerModal')">Batal</button><button class="btn btn-primary" onclick="saveCustomer(${c?.id || 'null'})">Simpan</button></div>`; document.getElementById('customerModal').classList.add('active'); }
+async function saveCustomer(id) { const data = { name: gv('cName'), no_telp: gv('cPhone'), address: gv('cAddress') }; if (!data.name) return showToast('Nama wajib!'); if (id) await api('/customers/' + id, { method: 'PUT', body: JSON.stringify(data) }); else await api('/customers', { method: 'POST', body: JSON.stringify(data) }); closeModal('customerModal'); renderCustomers(); showToast('Pelanggan disimpan!'); }
+function editCustomer(id) { const c = customers.find(x => x.id === id); if (c) showCustomerModal(c); }
+async function deleteCustomer(id) { if (!confirm('Hapus?')) return; await api('/customers/' + id, { method: 'DELETE' }); renderCustomers(); showToast('Dihapus!'); }
+
+// ── Suppliers ──────────────────────────────────────────────
+async function renderSuppliers() {
+    suppliers = await api('/suppliers');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Supplier</h2><button class="btn btn-primary" onclick="showSupplierModal()"><i class="fas fa-plus"></i> Tambah</button></div><div class="card"><table><thead><tr><th>Nama</th><th>Alamat</th><th>Telepon</th><th>Aksi</th></tr></thead><tbody>${suppliers.map(s => `<tr><td>${s.name}</td><td>${s.address || '-'}</td><td>${s.no_telp || '-'}</td><td><button class="btn btn-danger" onclick="deleteSupplier(${s.id})">Hapus</button></td></tr>`).join('') || '<tr><td colspan="4">Belum ada supplier</td></tr>'}</tbody></table></div>`;
+}
+function showSupplierModal() { document.getElementById('productModalContent').innerHTML = `<h3 style="margin-bottom:16px">Tambah Supplier</h3><div class="form-group"><label>Nama *</label><input class="form-input" id="sName"></div><div class="form-group"><label>Alamat</label><input class="form-input" id="sAddress"></div><div class="form-group"><label>Telepon</label><input class="form-input" id="sPhone"></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('productModal')">Batal</button><button class="btn btn-primary" onclick="saveSupplier()">Simpan</button></div>`; document.getElementById('productModal').classList.add('active'); }
+async function saveSupplier() { const name = gv('sName'); if (!name) return showToast('Nama wajib!'); await api('/suppliers', { method: 'POST', body: JSON.stringify({ name, address: gv('sAddress'), no_telp: gv('sPhone') }) }); closeModal('productModal'); renderSuppliers(); showToast('Supplier ditambahkan!'); }
+async function deleteSupplier(id) { if (!confirm('Hapus?')) return; await api('/suppliers/' + id, { method: 'DELETE' }); renderSuppliers(); showToast('Dihapus!'); }
+
+// ── Transactions ───────────────────────────────────────────
+async function renderTransactions() {
+    transactions = await api('/transactions');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Riwayat Transaksi</h2></div><div class="card"><table><thead><tr><th>Invoice</th><th>Kasir</th><th>Pelanggan</th><th>Total</th><th>Pembayaran</th><th>Status</th><th>Tanggal</th></tr></thead><tbody>${transactions.map(t => `<tr><td>${t.invoice}</td><td>${t.cashier_name || '-'}</td><td>${t.customer_name || 'Umum'}</td><td>Rp ${(t.grand_total||0).toLocaleString('id-ID')}</td><td>${t.payment_method}</td><td><span class="badge ${t.payment_status === 'paid' ? 'badge-green' : 'badge-red'}">${t.payment_status}</span></td><td>${t.created_at}</td></tr>`).join('') || '<tr><td colspan="7">Belum ada transaksi</td></tr>'}</tbody></table></div>`;
+}
+
+// ── Receivables ────────────────────────────────────────────
+async function renderReceivables() {
+    receivables = await api('/receivables');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Piutang</h2></div><div class="card"><table><thead><tr><th>Invoice</th><th>Pelanggan</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th><th>Jatuh Tempo</th></tr></thead><tbody>${receivables.map(r => `<tr><td>${r.invoice}</td><td>${r.customer_name || '-'}</td><td>Rp ${(r.total||0).toLocaleString('id-ID')}</td><td>Rp ${(r.paid||0).toLocaleString('id-ID')}</td><td>Rp ${((r.total||0)-(r.paid||0)).toLocaleString('id-ID')}</td><td><span class="badge ${r.status === 'paid' ? 'badge-green' : 'badge-red'}">${r.status}</span></td><td>${r.due_date || '-'}</td></tr>`).join('') || '<tr><td colspan="7">Tidak ada piutang</td></tr>'}</tbody></table></div>`;
+}
+
+// ── Payables ───────────────────────────────────────────────
+async function renderPayables() {
+    payables = await api('/payables');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Hutang</h2></div><div class="card"><table><thead><tr><th>Dokumen</th><th>Supplier</th><th>Total</th><th>Dibayar</th><th>Sisa</th><th>Status</th></tr></thead><tbody>${payables.map(p => `<tr><td>${p.document_number}</td><td>${p.supplier_name || '-'}</td><td>Rp ${(p.total||0).toLocaleString('id-ID')}</td><td>Rp ${(p.paid||0).toLocaleString('id-ID')}</td><td>Rp ${((p.total||0)-(p.paid||0)).toLocaleString('id-ID')}</td><td><span class="badge ${p.status === 'paid' ? 'badge-green' : 'badge-red'}">${p.status}</span></td></tr>`).join('') || '<tr><td colspan="6">Tidak ada hutang</td></tr>'}</tbody></table></div>`;
+}
+
+// ── Warehouses ─────────────────────────────────────────────
+async function renderWarehouses() {
+    warehouses = await api('/warehouses');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Gudang</h2><button class="btn btn-primary" onclick="showWarehouseModal()"><i class="fas fa-plus"></i> Tambah</button></div><div class="card"><table><thead><tr><th>Kode</th><th>Nama</th><th>Tipe</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${warehouses.map(w => `<tr><td>${w.code}</td><td>${w.name}</td><td>${w.type}</td><td><span class="badge ${w.is_active ? 'badge-green' : 'badge-red'}">${w.is_active ? 'Aktif' : 'Nonaktif'}</span></td><td><button class="btn btn-danger" onclick="deleteWarehouse(${w.id})">Hapus</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function showWarehouseModal() { document.getElementById('productModalContent').innerHTML = `<h3 style="margin-bottom:16px">Tambah Gudang</h3><div class="form-row"><div class="form-group"><label>Kode *</label><input class="form-input" id="wCode"></div><div class="form-group"><label>Nama *</label><input class="form-input" id="wName"></div></div><div class="form-group"><label>Tipe</label><select class="form-input" id="wType"><option value="main">Gudang Utama</option><option value="branch">Cabang</option></select></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('productModal')">Batal</button><button class="btn btn-primary" onclick="saveWarehouse()">Simpan</button></div>`; document.getElementById('productModal').classList.add('active'); }
+async function saveWarehouse() { const code = gv('wCode'), name = gv('wName'); if (!code || !name) return showToast('Kode & nama wajib!'); await api('/warehouses', { method: 'POST', body: JSON.stringify({ code, name, type: gv('wType') }) }); closeModal('productModal'); renderWarehouses(); showToast('Gudang ditambahkan!'); }
+async function deleteWarehouse(id) { if (!confirm('Hapus?')) return; await api('/warehouses/' + id, { method: 'DELETE' }); renderWarehouses(); showToast('Dihapus!'); }
+
+// ── Stock Opname ───────────────────────────────────────────
+async function renderStockOpname() {
+    const opnames = await api('/stock-opnames');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Stok Opname</h2><button class="btn btn-primary" onclick="createOpname()"><i class="fas fa-plus"></i> Buat Baru</button></div><div class="card"><table><thead><tr><th>Gudang</th><th>Status</th><th>Dibuat Oleh</th><th>Tanggal</th></tr></thead><tbody>${opnames.map(o => `<tr><td>${o.warehouse_name || '-'}</td><td><span class="badge ${o.status === 'finalized' ? 'badge-green' : 'badge-yellow'}">${o.status}</span></td><td>${o.created_by_name || '-'}</td><td>${o.created_at}</td></tr>`).join('') || '<tr><td colspan="4">Belum ada stok opname</td></tr>'}</tbody></table></div>`;
+}
+async function createOpname() { if (warehouses.length === 0) await api('/warehouses'); const wh = warehouses[0]; if (!wh) return showToast('Buat gudang dulu!'); await api('/stock-opnames', { method: 'POST', body: JSON.stringify({ warehouse_id: wh.id, notes: 'Stok opname manual' }) }); renderStockOpname(); showToast('Stok opname dibuat!'); }
+
+// ── Reports ────────────────────────────────────────────────
+async function renderReports() {
+    const [sales, profits] = await Promise.all([api('/reports/sales'), api('/reports/profits')]);
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Laporan</h2></div>
+        <div class="card"><h3 style="margin-bottom:12px">Penjualan (30 Hari Terakhir)</h3><table><thead><tr><th>Tanggal</th><th>Jumlah Transaksi</th><th>Total Omzet</th></tr></thead><tbody>${(sales || []).slice(0, 14).map(s => `<tr><td>${s.date}</td><td>${s.count}</td><td>Rp ${(s.total||0).toLocaleString('id-ID')}</td></tr>`).join('') || '<tr><td colspan="3">Belum ada data</td></tr>'}</tbody></table></div>
+        <div class="card"><h3 style="margin-bottom:12px">Profit (30 Hari Terakhir)</h3><table><thead><tr><th>Tanggal</th><th>Jumlah Transaksi</th><th>Total Profit</th></tr></thead><tbody>${(profits || []).slice(0, 14).map(p => `<tr><td>${p.date}</td><td>${p.transaction_count}</td><td>Rp ${(p.total_profit||0).toLocaleString('id-ID')}</td></tr>`).join('') || '<tr><td colspan="3">Belum ada data</td></tr>'}</tbody></table></div>`;
+}
+
+// ── Settings ───────────────────────────────────────────────
+async function renderSettings() {
+    const settings = await api('/settings');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>Pengaturan</h2></div>
+        <div class="card"><h3 style="margin-bottom:12px">Profil Toko</h3>
+        <div class="form-row"><div class="form-group"><label>Nama Toko</label><input class="form-input" id="setStoreName" value="${settings?.store_name || ''}"></div><div class="form-group"><label>Telepon</label><input class="form-input" id="setStorePhone" value="${settings?.store_phone || ''}"></div></div>
+        <div class="form-group"><label>Alamat</label><input class="form-input" id="setStoreAddress" value="${settings?.store_address || ''}"></div>
+        <button class="btn btn-primary" onclick="saveSettings()">Simpan</button></div>
+        <div class="card"><h3 style="margin-bottom:12px">Pajak</h3>
+        <div class="form-row"><div class="form-group"><label>Default Tax Rate (%)</label><input class="form-input" id="setTaxRate" type="number" value="${settings?.tax_default_rate || 11}"></div><div class="form-group"><label>Mata Uang</label><input class="form-input" id="setCurrency" value="${settings?.currency || 'IDR'}"></div></div>
+        <button class="btn btn-primary" onclick="saveSettings()">Simpan</button></div>`;
+}
+async function saveSettings() {
+    await api('/settings/bulk', { method: 'POST', body: JSON.stringify({ settings: { store_name: gv('setStoreName'), store_phone: gv('setStorePhone'), store_address: gv('setStoreAddress'), tax_default_rate: gv('setTaxRate'), currency: gv('setCurrency') } }) });
+    showToast('Pengaturan disimpan!');
+}
+
+// ── Users ──────────────────────────────────────────────────
+async function renderUsers() {
+    const users = await api('/users');
+    document.getElementById('mainContent').innerHTML = `<div class="page-header"><h2>User Management</h2><button class="btn btn-primary" onclick="showUserModal()"><i class="fas fa-plus"></i> Tambah</button></div><div class="card"><table><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Aksi</th></tr></thead><tbody>${(users || []).map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td><span class="badge badge-green">${u.role}</span></td><td><button class="btn btn-danger" onclick="deleteUser(${u.id})">Hapus</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function showUserModal() { document.getElementById('productModalContent').innerHTML = `<h3 style="margin-bottom:16px">Tambah User</h3><div class="form-group"><label>Nama *</label><input class="form-input" id="uName"></div><div class="form-group"><label>Email *</label><input class="form-input" id="uEmail" type="email"></div><div class="form-group"><label>Password *</label><input class="form-input" id="uPass" type="password"></div><div class="form-group"><label>Role</label><select class="form-input" id="uRole"><option value="cashier">Kasir</option><option value="admin">Admin</option></select></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-secondary" onclick="closeModal('productModal')">Batal</button><button class="btn btn-primary" onclick="saveUser()">Simpan</button></div>`; document.getElementById('productModal').classList.add('active'); }
+async function saveUser() { const name = gv('uName'), email = gv('uEmail'), password = gv('uPass'); if (!name || !email || !password) return showToast('Semua field wajib!'); await api('/users', { method: 'POST', body: JSON.stringify({ name, email, password, role: gv('uRole') }) }); closeModal('productModal'); renderUsers(); showToast('User ditambahkan!'); }
+async function deleteUser(id) { if (!confirm('Hapus?')) return; await api('/users/' + id, { method: 'DELETE' }); renderUsers(); showToast('Dihapus!'); }
+
+// ── POS ────────────────────────────────────────────────────
+async function renderPOS() {
+    [products, categories] = await Promise.all([api('/products'), api('/products/categories/all')]);
+    document.getElementById('mainContent').innerHTML = `
+        <div style="display:flex;flex-direction:column;height:calc(100vh - ${window.innerWidth <= 768 ? '60' : '72'}px)">
+            <!-- Search & Filter Bar -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <div style="flex:1;min-width:200px;position:relative">
+                    <input type="text" id="posSearchInput" class="form-input" placeholder="🔍 Cari produk..." oninput="filterPOSProducts(this.value)" style="padding-left:12px;padding-right:80px">
+                    <button onclick="openCamera('barcode')" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:#4f46e5;color:white;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">
+                        <i class="fas fa-barcode"></i> Scan
+                    </button>
+                </div>
+                <button onclick="toggleCartPanel()" class="btn btn-secondary" style="display:none" id="toggleCartBtn">
+                    🛒 <span id="cartBadge">0</span>
+                </button>
+            </div>
+            
+            <!-- Category Filter -->
+            <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;padding-bottom:4px">
+                <button class="btn btn-secondary btn-sm" onclick="filterPOSCategory(null)" style="white-space:nowrap">Semua</button>
+                ${categories.map(c => `<button class="btn btn-secondary btn-sm" onclick="filterPOSCategory(${c.id})" style="white-space:nowrap">${c.name}</button>`).join('')}
+            </div>
+            
+            <!-- Main Content: Products + Cart -->
+            <div style="display:flex;gap:16px;flex:1;min-height:0;overflow:hidden">
+                <!-- Products Grid -->
+                <div id="posProductsPanel" style="flex:1;overflow-y:auto">
+                    <div id="posProductGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+                        ${renderProductCards(products)}
+                    </div>
+                </div>
+                
+                <!-- Cart Panel -->
+                <div id="posCartPanel" style="width:320px;background:white;border-radius:12px;display:flex;flex-direction:column;border:1px solid #e5e7eb;flex-shrink:0">
+                    <div style="padding:12px;border-bottom:1px solid #e5e7eb;font-weight:600;display:flex;justify-content:space-between;align-items:center">
+                        <span>🛒 Keranjang (<span id="posCartCount">0</span>)</span>
+                        <button onclick="clearCart()" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px" title="Kosongkan"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div id="posCartItems" style="flex:1;overflow-y:auto;padding:8px"></div>
+                    <div style="padding:12px;border-top:1px solid #e5e7eb">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="color:#6b7280">Subtotal</span><span id="posSubtotal">Rp 0</span></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:18px;font-weight:700;color:#4f46e5"><span>Total</span><span id="posTotal">Rp 0</span></div>
+                        <button style="width:100%;padding:14px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer" onclick="openCheckout()" id="posCheckoutBtn" disabled>💰 Bayar</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    // Show/hide cart toggle on mobile
+    checkCartToggle();
+}
+
+function renderProductCards(products) {
+    return products.map(p => {
+        const initial = (p.title || '?')[0].toUpperCase();
+        const colors = ['#4f46e5','#2563eb','#059669','#d97706','#dc2626','#7c3aed','#db2777','#0891b2'];
+        const color = colors[p.id % colors.length];
+        return `<div style="background:white;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;cursor:pointer;transition:all 0.2s" onclick="addToCart(${p.id})">
+            <div style="height:80px;background:linear-gradient(135deg,${color}22,${color}44);display:flex;align-items:center;justify-content:center">
+                ${p.image ? `<img src="${p.image}" style="height:100%;width:100%;object-fit:cover">` : `<div style="width:48px;height:48px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:white">${initial}</div>`}
+            </div>
+            <div style="padding:10px">
+                <div style="font-size:12px;font-weight:500;line-height:1.3;margin-bottom:4px;height:32px;overflow:hidden">${p.title}</div>
+                <div style="font-size:14px;font-weight:700;color:#4f46e5">Rp ${(p.sell_price||0).toLocaleString('id-ID')}</div>
+                <div style="font-size:11px;color:${p.stock<=5?'#ef4444':'#9ca3af'};margin-top:2px">Stok: ${p.stock}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function checkCartToggle() {
+    const toggleBtn = document.getElementById('toggleCartBtn');
+    const cartPanel = document.getElementById('posCartPanel');
+    if (!toggleBtn || !cartPanel) return;
+    
+    if (window.innerWidth <= 768) {
+        toggleBtn.style.display = 'block';
+        cartPanel.style.display = 'none';
+        cartPanel.style.position = 'fixed';
+        cartPanel.style.bottom = '0';
+        cartPanel.style.left = '0';
+        cartPanel.style.right = '0';
+        cartPanel.style.height = '50vh';
+        cartPanel.style.zIndex = '50';
+        cartPanel.style.borderRadius = '12px 12px 0 0';
+    } else {
+        toggleBtn.style.display = 'none';
+        cartPanel.style.display = 'flex';
+        cartPanel.style.position = 'relative';
+        cartPanel.style.height = 'auto';
+    }
+}
+
+function toggleCartPanel() {
+    const cartPanel = document.getElementById('posCartPanel');
+    if (cartPanel.style.display === 'none') {
+        cartPanel.style.display = 'flex';
+    } else {
+        cartPanel.style.display = 'none';
+    }
+}
+
+window.addEventListener('resize', checkCartToggle);
+
+// ── POS Functions ──────────────────────────────────────────
+function filterPOSProducts(q) {
+    const f = products.filter(p => p.title.toLowerCase().includes(q.toLowerCase()));
+    document.getElementById('posProductGrid').innerHTML = renderProductCards(f);
+}
+function addToCart(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const existing = cart.find(x => x.product_id === id);
+    if (existing) {
+        existing.qty++;
+        showToast(`${p.title} x${existing.qty}`);
+    } else {
+        cart.push({ product_id: p.id, title: p.title, sell_price: p.sell_price, qty: 1 });
+        showToast(`${p.title} ditambahkan`);
+    }
+    
+    // Animate badge
+    const badge = document.getElementById('cartBadge');
+    if (badge) {
+        badge.style.transform = 'scale(1.3)';
+        badge.style.transition = 'transform 0.2s';
+        setTimeout(() => { badge.style.transform = 'scale(1)'; }, 200);
+    }
+    
+    renderCart();
+}
+function updateCartQty(i, d) { cart[i].qty += d; if (cart[i].qty <= 0) cart.splice(i, 1); renderCart(); }
+function removeFromCart(i) { cart.splice(i, 1); renderCart(); }
+function clearCart() { cart = []; renderCart(); }
+function renderCart() {
+    const el = document.getElementById('posCartItems');
+    const total = cart.reduce((s, i) => s + (i.sell_price * i.qty), 0);
+    document.getElementById('posCartCount').textContent = cart.reduce((s, i) => s + i.qty, 0);
+    document.getElementById('cartBadge').textContent = cart.reduce((s, i) => s + i.qty, 0);
+    document.getElementById('posSubtotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+    document.getElementById('posTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+    document.getElementById('posCheckoutBtn').disabled = cart.length === 0;
+    el.innerHTML = cart.length === 0 ? '<div style="text-align:center;color:#9ca3af;padding:40px">Keranjang kosong</div>' : cart.map((item, i) => `<div style="display:flex;align-items:center;padding:8px;border-bottom:1px solid #f3f4f6;gap:8px"><div style="flex:1"><div style="font-size:13px;font-weight:500">${item.title}</div><div style="font-size:12px;color:#6b7280">Rp ${(item.sell_price||0).toLocaleString('id-ID')}</div></div><button style="width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer" onclick="updateCartQty(${i},-1)">-</button><span style="font-weight:600;min-width:24px;text-align:center">${item.qty}</span><button style="width:28px;height:28px;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer" onclick="updateCartQty(${i},1)">+</button><div style="font-weight:600;min-width:70px;text-align:right">Rp ${(item.sell_price * item.qty).toLocaleString('id-ID')}</div><div style="cursor:pointer;color:#9ca3af" onclick="removeFromCart(${i})">✕</div></div>`).join('');
+}
+function openCheckout() {
+    if (cart.length === 0) return;
+    const total = cart.reduce((s, i) => s + (i.sell_price * i.qty), 0);
+    document.getElementById('checkoutModalContent').innerHTML = `<h3 style="margin-bottom:16px">💰 Pembayaran</h3><div style="text-align:center;margin-bottom:16px"><div style="color:#6b7280">Total</div><div style="font-size:32px;font-weight:700;color:#4f46e5">Rp ${total.toLocaleString('id-ID')}</div></div><input type="number" class="form-input" id="cashInput" placeholder="Uang diterima" oninput="calcChange()" style="font-size:16px"><div id="changeRow" style="display:none;background:#f0fdf4;padding:12px;border-radius:8px;display:none;margin-top:12px"><div style="display:flex;justify-content:space-between"><span style="color:#6b7280">Kembalian</span><span id="changeValue" style="font-weight:700;color:#22c55e">Rp 0</span></div></div><button style="width:100%;padding:14px;background:#4f46e5;color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;margin-top:16px" onclick="doCheckout()" id="payBtn" disabled>Bayar Sekarang</button>`;
+    document.getElementById('checkoutModal').classList.add('active');
+}
+function calcChange() { const total = cart.reduce((s, i) => s + (i.sell_price * i.qty), 0); const cash = parseInt(document.getElementById('cashInput').value) || 0; const change = cash - total; if (change >= 0) { document.getElementById('changeRow').style.display = 'flex'; document.getElementById('changeValue').textContent = 'Rp ' + change.toLocaleString('id-ID'); document.getElementById('payBtn').disabled = false; } else { document.getElementById('changeRow').style.display = 'none'; document.getElementById('payBtn').disabled = true; } }
+async function doCheckout() {
+    const total = cart.reduce((s, i) => s + (i.sell_price * i.qty), 0);
+    const cash = parseInt(document.getElementById('cashInput').value) || 0;
+    document.getElementById('payBtn').disabled = true;
+    document.getElementById('payBtn').textContent = 'Menyimpan...';
+    
+    const transactionData = { 
+        items: cart, 
+        cash, 
+        payment_method: 'cash',
+        total: total,
+        created_at: new Date().toISOString()
+    };
+    
+    if (isOnline) {
+        // ONLINE: langsung ke server
+        const result = await api('/transactions', { method: 'POST', body: JSON.stringify(transactionData) });
+        if (result?.invoice) { 
+            cart = []; 
+            renderCart(); 
+            closeModal('checkoutModal'); 
+            showToast(`Berhasil! Invoice: ${result.invoice}`); 
+        } else {
+            showToast('Gagal menyimpan');
+        }
+    } else {
+        // OFFLINE: simpan lokal + queue sync
+        try {
+            await queueTransaction(transactionData);
+            cart = []; 
+            renderCart(); 
+            closeModal('checkoutModal'); 
+            showToast('Transaksi disimpan offline. Akan sync saat online.');
+        } catch (err) {
+            showToast('Gagal menyimpan offline');
+        }
+    }
+    
+    document.getElementById('payBtn').textContent = 'Bayar Sekarang';
+    document.getElementById('payBtn').disabled = false;
+}
+
+// ── Utils ──────────────────────────────────────────────────
+function gv(id) { return document.getElementById(id)?.value || ''; }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2500); }
+
+// ── Camera & Barcode Scanner ───────────────────────────────
+let cameraStream = null;
+let html5QrCode = null;
+let cameraMode = null;
+
+function openCamera(mode) {
+    cameraMode = mode;
+    const modal = document.getElementById('cameraModal');
+    const title = document.getElementById('cameraTitle');
+    const captureBtn = document.getElementById('cameraCapture');
+    const barcodeResult = document.getElementById('barcodeResult');
+    const video = document.getElementById('cameraVideo');
+    const scanner = document.getElementById('barcodeScanner');
+    
+    modal.classList.add('active');
+    barcodeResult.style.display = 'none';
+    
+    // Hide all first
+    video.style.display = 'none';
+    scanner.style.display = 'none';
+    captureBtn.style.display = 'none';
+    
+    if (mode === 'barcode') {
+        title.textContent = '📷 Scan Barcode';
+        scanner.style.display = 'block';
+        startBarcodeScanner();
+    } else {
+        title.textContent = '📷 Foto Produk';
+        video.style.display = 'block';
+        captureBtn.style.display = 'block';
+        startCamera();
+    }
+}
+
+function closeCamera() {
+    const modal = document.getElementById('cameraModal');
+    modal.classList.remove('active');
+    
+    // Hide scanner div
+    const scanner = document.getElementById('barcodeScanner');
+    if (scanner) scanner.style.display = 'none';
+    
+    if (html5QrCode) {
+        html5QrCode.stop().catch(() => {});
+        html5QrCode = null;
+    }
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+}
+
+async function startCamera() {
+    try {
+        const video = document.getElementById('cameraVideo');
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+        });
+        video.srcObject = cameraStream;
+    } catch (err) {
+        showToast('Tidak bisa akses kamera: ' + err.message);
+        closeCamera();
+    }
+}
+
+function capturePhoto() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    // Resize to max 800px
+    const maxSize = 800;
+    let width = canvas.width;
+    let height = canvas.height;
+    
+    if (width > maxSize || height > maxSize) {
+        if (width > height) {
+            height = Math.round(height * maxSize / width);
+            width = maxSize;
+        } else {
+            width = Math.round(width * maxSize / height);
+            height = maxSize;
+        }
+    }
+    
+    const resizeCanvas = document.createElement('canvas');
+    resizeCanvas.width = width;
+    resizeCanvas.height = height;
+    const resizeCtx = resizeCanvas.getContext('2d');
+    resizeCtx.drawImage(canvas, 0, 0, width, height);
+    
+    const dataUrl = resizeCanvas.toDataURL('image/jpeg', 0.8);
+    
+    // Set preview
+    const preview = document.getElementById('pImagePreview');
+    if (preview) {
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+    }
+    
+    // Store data
+    const input = document.getElementById('pImageData');
+    if (input) input.value = dataUrl;
+    
+    closeCamera();
+    showToast('Foto berhasil diambil!');
+}
+
+function startBarcodeScanner() {
+    try {
+        // Clear previous instance
+        const scannerDiv = document.getElementById('barcodeScanner');
+        scannerDiv.innerHTML = '';
+        
+        let lastScanned = '';
+        let lastScanTime = 0;
+        const SCAN_COOLDOWN = 3000; // 3 detik cooldown
+        
+        html5QrCode = new Html5Qrcode("barcodeScanner");
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 150 },
+                aspectRatio: 1.5
+            },
+            (decodedText) => {
+                const now = Date.now();
+                
+                // Skip jika barcode sama dalam 3 detik terakhir
+                if (decodedText === lastScanned && (now - lastScanTime) < SCAN_COOLDOWN) {
+                    return;
+                }
+                
+                lastScanned = decodedText;
+                lastScanTime = now;
+                
+                // Barcode detected
+                document.getElementById('barcodeValue').textContent = decodedText;
+                document.getElementById('barcodeResult').style.display = 'block';
+                
+                // Set barcode input (for product form)
+                const barcodeInput = document.getElementById('pBarcode');
+                if (barcodeInput) barcodeInput.value = decodedText;
+                
+                // AUTO-ADD TO CART (if in POS mode)
+                const product = products.find(p => 
+                    p.barcode === decodedText || 
+                    p.barcode?.toLowerCase() === decodedText.toLowerCase()
+                );
+                
+                if (product) {
+                    // Found product - add to cart
+                    const existing = cart.find(x => x.product_id === product.id);
+                    if (existing) {
+                        existing.qty++;
+                        showToast(`${product.title} x${existing.qty}`);
+                    } else {
+                        cart.push({ 
+                            product_id: product.id, 
+                            title: product.title, 
+                            sell_price: product.sell_price, 
+                            qty: 1 
+                        });
+                        showToast(`${product.title} ditambahkan!`);
+                    }
+                    
+                    // Update badge
+                    const badge = document.getElementById('cartBadge');
+                    if (badge) {
+                        badge.style.transform = 'scale(1.3)';
+                        badge.style.transition = 'transform 0.2s';
+                        setTimeout(() => { badge.style.transform = 'scale(1)'; }, 200);
+                    }
+                    renderCart();
+                } else {
+                    showToast('Produk tidak ditemukan: ' + decodedText);
+                }
+                
+                // Play beep sound
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.frequency.value = 1500;
+                    gainNode.gain.value = 0.3;
+                    oscillator.start();
+                    setTimeout(() => oscillator.stop(), 150);
+                } catch (e) {}
+                
+                // Auto close after 1.5 detik
+                setTimeout(() => {
+                    closeCamera();
+                }, 1500);
+            },
+            (errorMessage) => {
+                // QR code not found, continue scanning
+            }
+        ).catch((err) => {
+            console.error('Scanner error:', err);
+            showToast('Gagal mulai scanner: ' + err.message);
+            closeCamera();
+        });
+    } catch (err) {
+        console.error('Scanner init error:', err);
+        showToast('Scanner tidak tersedia: ' + err.message);
+        closeCamera();
+    }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal('productModal'); closeModal('customerModal'); closeModal('checkoutModal'); closeCamera(); } });
+document.getElementById('loginPassword').addEventListener('keypress', e => { if (e.key === 'Enter') doLogin(); });
+
+if (token) api('/auth/me').then(d => { if (d?.id) { user = d; initApp(); } else doLogout(); });
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('Service Worker registered:', registration.scope);
+                
+                // Listen for sync messages
+                navigator.serviceWorker.addEventListener('message', (event) => {
+                    if (event.data.type === 'SYNC_TRANSACTIONS') {
+                        syncPendingTransactions();
+                    }
+                });
+            })
+            .catch((err) => {
+                console.log('Service Worker registration failed:', err);
+            });
+    });
+}
+</script>
+</body>
+</html>

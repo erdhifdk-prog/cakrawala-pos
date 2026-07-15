@@ -1,0 +1,8 @@
+node_modules/
+data/
+*.db
+.env
+.DS_Store
+android/app/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/

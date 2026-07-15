@@ -1,0 +1,33 @@
+{
+  "name": "cakrawala-pos",
+  "version": "1.0.0",
+  "description": "Cakrawala POS - Point of Sale untuk UMKM (Ringan untuk STB)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js",
+    "build": "echo 'Static site - no build needed'",
+    "cap:init": "npx cap init 'Cakrawala POS' com.cakrawala.pos --web-dir public",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "apk:build": "cd android && ./gradlew assembleDebug",
+    "apk:release": "cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+    "appId": "com.cakrawala.pos",
+    "appName": "Cakrawala POS",
+    "webDir": "public",
+    "server": {
+        "url": "https://kasir.internetproject.web.id",
+        "cleartext": true,
+        "androidScheme": "https"
+    },
+    "android": {
+        "buildOptions": {
+            "keystorePath": null,
+            "keystorePassword": null,
+            "keystoreAlias": null,
+            "keystoreAliasPassword": null,
+            "signingType": "apksigner"
+        }
+    },
+    "plugins": {
+        "SplashScreen": {
+            "launchAutoHide": true,
+            "androidScaleType": "CENTER_CROP",
+            "splashFullScreen": true,
+            "splashImmersive": true,
+            "backgroundColor": "#4f46e5"
+        }
+    }
+}

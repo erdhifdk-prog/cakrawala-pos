@@ -210,25 +210,29 @@
 
 <script>
 // ── Config ─────────────────────────────────────────────────
+// URL server untuk API calls
+// Di browser: gunakan origin yang sama
+// Di APK: gunakan URL server langsung
+const REMOTE_SERVER = 'https://kasir.internetproject.web.id';
+
 const API_BASE_URL = (() => {
-    // Deteksi apakah running di Capacitor/native app
-    const isNativeApp = window.location.protocol === 'file:' || 
-                        window.location.protocol === 'capacitor:' ||
-                        window.location.protocol === 'https:' && window.location.hostname.includes('capacitor') ||
-                        navigator.userAgent.includes('Capacitor') ||
-                        window.Capacitor !== undefined;
-    
-    // Debug info
-    console.log('Protocol:', window.location.protocol);
-    console.log('Hostname:', window.location.hostname);
-    console.log('isNativeApp:', isNativeApp);
-    
-    if (isNativeApp) {
-        console.log('Running as native app → using remote server');
-        return 'https://kasir.internetproject.web.id';
+    // Cek apakah di native app (Capacitor)
+    if (window.location.protocol === 'file:' || 
+        window.location.protocol === 'capacitor:' ||
+        window.Capacitor !== undefined) {
+        console.log('Mode: Native App → Remote Server');
+        return REMOTE_SERVER;
     }
     
-    console.log('Running in browser → using same origin');
+    // Cek apakah di localhost (development)
+    if (window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1') {
+        console.log('Mode: Localhost → Same Origin');
+        return window.location.origin;
+    }
+    
+    // Default: gunakan origin yang sama (production web)
+    console.log('Mode: Browser → Same Origin');
     return window.location.origin;
 })();
 
@@ -279,10 +283,34 @@ async function loadCustomersOffline() {
 // ── API Helper ─────────────────────────────────────────────
 async function api(path, opts = {}) {
     const url = API_BASE_URL + '/api' + path;
-    const res = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...opts.headers } });
-    if (res.status === 401) { doLogout(); return null; }
-    const text = await res.text();
-    try { return JSON.parse(text); } catch { return text; }
+    console.log('API Call:', url);
+    
+    try {
+        const res = await fetch(url, { 
+            ...opts, 
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json',
+                ...(token ? { 'Authorization': 'Bearer ' + token } : {}), 
+                ...opts.headers 
+            } 
+        });
+        
+        if (res.status === 401) { 
+            doLogout(); 
+            return null; 
+        }
+        
+        const text = await res.text();
+        try { 
+            return JSON.parse(text); 
+        } catch { 
+            return text; 
+        }
+    } catch (err) {
+        console.error('API Error:', err.message, 'URL:', url);
+        throw err;
+    }
 }
 
 // ── Offline Support ────────────────────────────────────────
@@ -397,7 +425,13 @@ async function doLogin() {
     document.getElementById('loginError').style.display = 'none';
     
     try {
-        const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        console.log('Attempting login to:', API_BASE_URL + '/api/auth/login');
+        const data = await api('/auth/login', { 
+            method: 'POST', 
+            body: JSON.stringify({ email, password }) 
+        });
+        
+        console.log('Login response:', data);
         
         if (data?.token) {
             token = data.token;
@@ -406,42 +440,36 @@ async function doLogin() {
             localStorage.setItem('cakrawala_user', JSON.stringify(user));
             localStorage.setItem('cakrawala_email', email);
             localStorage.setItem('cakrawala_password', password);
+            showToast('Login berhasil!');
             initApp();
         } else {
             // Try offline login
-            const cachedUser = localStorage.getItem('cakrawala_user');
-            const cachedEmail = localStorage.getItem('cakrawala_email');
-            const cachedPassword = localStorage.getItem('cakrawala_password');
-            
-            if (cachedUser && cachedEmail === email && cachedPassword === password) {
-                user = JSON.parse(cachedUser);
-                token = localStorage.getItem('cakrawala_token');
-                showToast('Login offline berhasil!');
-                initApp();
-            } else {
-                document.getElementById('loginError').textContent = 'Email atau password salah';
-                document.getElementById('loginError').style.display = 'block';
-            }
+            tryOfflineLogin(email, password);
         }
     } catch (err) {
-        // Offline - try cached login
-        const cachedUser = localStorage.getItem('cakrawala_user');
-        const cachedEmail = localStorage.getItem('cakrawala_email');
-        const cachedPassword = localStorage.getItem('cakrawala_password');
-        
-        if (cachedUser && cachedEmail === email && cachedPassword === password) {
-            user = JSON.parse(cachedUser);
-            token = localStorage.getItem('cakrawala_token');
-            showToast('Login offline berhasil!');
-            initApp();
-        } else {
-            document.getElementById('loginError').textContent = 'Tidak ada internet & belum pernah login';
-            document.getElementById('loginError').style.display = 'block';
-        }
+        console.error('Login error:', err);
+        // Try offline login
+        tryOfflineLogin(email, password);
     }
     
     btn.disabled = false;
     btn.textContent = 'Masuk';
+}
+
+function tryOfflineLogin(email, password) {
+    const cachedUser = localStorage.getItem('cakrawala_user');
+    const cachedEmail = localStorage.getItem('cakrawala_email');
+    const cachedPassword = localStorage.getItem('cakrawala_password');
+    
+    if (cachedUser && cachedEmail === email && cachedPassword === password) {
+        user = JSON.parse(cachedUser);
+        token = localStorage.getItem('cakrawala_token');
+        showToast('Login offline berhasil!');
+        initApp();
+    } else {
+        document.getElementById('loginError').textContent = 'Email atau password salah (atau tidak ada internet)';
+        document.getElementById('loginError').style.display = 'block';
+    }
 }
 function doLogout() { token = null; user = null; localStorage.clear(); document.getElementById('loginPage').style.display = 'flex'; document.getElementById('appLayout').style.display = 'none'; }
 

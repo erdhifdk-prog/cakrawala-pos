@@ -209,6 +209,16 @@
     <div id="toast" class="toast"></div>
 
 <script>
+// ── Config ─────────────────────────────────────────────────
+const API_BASE_URL = (() => {
+    // Jika di Capacitor/native app, gunakan URL server
+    if (window.location.protocol === 'file:' || window.location.protocol === 'capacitor:') {
+        return 'https://kasir.internetproject.web.id';
+    }
+    // Jika di browser, gunakan origin yang sama
+    return window.location.origin;
+})();
+
 // ── State ──────────────────────────────────────────────────
 let token = localStorage.getItem('cakrawala_token');
 let user = JSON.parse(localStorage.getItem('cakrawala_user') || 'null');
@@ -216,9 +226,47 @@ let currentPage = 'dashboard';
 let products = [], categories = [], customers = [], transactions = [], suppliers = [], warehouses = [], receivables = [], payables = [];
 let cart = [], selectedCategory = null;
 
+// ── Offline Data Cache ─────────────────────────────────────
+async function cacheDataToOffline() {
+    if (!offlineDb) await initOfflineDb();
+    
+    try {
+        // Cache products
+        const productsData = await api('/products');
+        if (productsData && Array.isArray(productsData)) {
+            for (const p of productsData) {
+                await saveToStore('products', p);
+            }
+            console.log('Cached', productsData.length, 'products');
+        }
+        
+        // Cache customers
+        const customersData = await api('/customers');
+        if (customersData && Array.isArray(customersData)) {
+            for (const c of customersData) {
+                await saveToStore('customers', c);
+            }
+            console.log('Cached', customersData.length, 'customers');
+        }
+    } catch (err) {
+        console.log('Cache failed (offline?):', err.message);
+    }
+}
+
+async function loadProductsOffline() {
+    if (!offlineDb) await initOfflineDb();
+    return await getFromStore('products');
+}
+
+async function loadCustomersOffline() {
+    if (!offlineDb) await initOfflineDb();
+    return await getFromStore('customers');
+}
+
 // ── API Helper ─────────────────────────────────────────────
 async function api(path, opts = {}) {
-    const res = await fetch('/api' + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...opts.headers } });
+    const url = API_BASE_URL + '/api' + path;
+    const res = await fetch(url, { ...opts, headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': 'Bearer ' + token } : {}), ...opts.headers } });
     if (res.status === 401) { doLogout(); return null; }
     const text = await res.text();
     try { return JSON.parse(text); } catch { return text; }
@@ -321,9 +369,66 @@ initOfflineDb().catch(console.error);
 
 // ── Auth ───────────────────────────────────────────────────
 async function doLogin() {
-    const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email: document.getElementById('loginEmail').value, password: document.getElementById('loginPassword').value }) });
-    if (data?.token) { token = data.token; user = data.user; localStorage.setItem('cakrawala_token', token); localStorage.setItem('cakrawala_user', JSON.stringify(user)); initApp(); }
-    else { document.getElementById('loginError').textContent = 'Email atau password salah'; document.getElementById('loginError').style.display = 'block'; }
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    if (!email || !password) {
+        document.getElementById('loginError').textContent = 'Email dan password wajib diisi';
+        document.getElementById('loginError').style.display = 'block';
+        return;
+    }
+    
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span>';
+    document.getElementById('loginError').style.display = 'none';
+    
+    try {
+        const data = await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        
+        if (data?.token) {
+            token = data.token;
+            user = data.user;
+            localStorage.setItem('cakrawala_token', token);
+            localStorage.setItem('cakrawala_user', JSON.stringify(user));
+            localStorage.setItem('cakrawala_email', email);
+            localStorage.setItem('cakrawala_password', password);
+            initApp();
+        } else {
+            // Try offline login
+            const cachedUser = localStorage.getItem('cakrawala_user');
+            const cachedEmail = localStorage.getItem('cakrawala_email');
+            const cachedPassword = localStorage.getItem('cakrawala_password');
+            
+            if (cachedUser && cachedEmail === email && cachedPassword === password) {
+                user = JSON.parse(cachedUser);
+                token = localStorage.getItem('cakrawala_token');
+                showToast('Login offline berhasil!');
+                initApp();
+            } else {
+                document.getElementById('loginError').textContent = 'Email atau password salah';
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+    } catch (err) {
+        // Offline - try cached login
+        const cachedUser = localStorage.getItem('cakrawala_user');
+        const cachedEmail = localStorage.getItem('cakrawala_email');
+        const cachedPassword = localStorage.getItem('cakrawala_password');
+        
+        if (cachedUser && cachedEmail === email && cachedPassword === password) {
+            user = JSON.parse(cachedUser);
+            token = localStorage.getItem('cakrawala_token');
+            showToast('Login offline berhasil!');
+            initApp();
+        } else {
+            document.getElementById('loginError').textContent = 'Tidak ada internet & belum pernah login';
+            document.getElementById('loginError').style.display = 'block';
+        }
+    }
+    
+    btn.disabled = false;
+    btn.textContent = 'Masuk';
 }
 function doLogout() { token = null; user = null; localStorage.clear(); document.getElementById('loginPage').style.display = 'flex'; document.getElementById('appLayout').style.display = 'none'; }
 
@@ -352,6 +457,10 @@ async function initApp() {
     const mobileUser = document.getElementById('mobileSidebarUser');
     if (mobileUser) mobileUser.textContent = user?.name || '';
     checkMobile();
+    
+    // Cache data for offline use
+    await cacheDataToOffline();
+    
     showPage('dashboard');
 }
 
@@ -737,7 +846,22 @@ async function deleteUser(id) { if (!confirm('Hapus?')) return; await api('/user
 
 // ── POS ────────────────────────────────────────────────────
 async function renderPOS() {
-    [products, categories] = await Promise.all([api('/products'), api('/products/categories/all')]);
+    // Load products & categories (online or offline)
+    try {
+        [products, categories] = await Promise.all([api('/products'), api('/products/categories/all')]);
+        // Cache for offline
+        if (products && Array.isArray(products)) {
+            for (const p of products) await saveToStore('products', p);
+        }
+        if (categories && Array.isArray(categories)) {
+            for (const c of categories) await saveToStore('categories', c);
+        }
+    } catch (err) {
+        // Offline - load from cache
+        console.log('Loading from cache...');
+        products = await loadProductsOffline();
+        categories = await getFromStore('categories');
+    }
     document.getElementById('mainContent').innerHTML = `
         <div style="display:flex;flex-direction:column;height:calc(100vh - ${window.innerWidth <= 768 ? '60' : '72'}px)">
             <!-- Search & Filter Bar -->

@@ -210,15 +210,18 @@
 
 <script>
 // ── Config ─────────────────────────────────────────────────
-// API Server URL - Ganti sesuai kebutuhan
-// Kosong = same origin (untuk web)
-// Isi URL = remote server (untuk APK)
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? window.location.origin  // Development: same origin
-    : 'https://kasir.internetproject.web.id';  // Production/APK: remote server
+    ? window.location.origin
+    : 'https://kasir.internetproject.web.id';
 
-console.log('API_BASE_URL:', API_BASE_URL);
+// Debug info
+console.log('=== Cakrawala POS Debug ===');
+console.log('Protocol:', window.location.protocol);
 console.log('Hostname:', window.location.hostname);
+console.log('Origin:', window.location.origin);
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('UserAgent:', navigator.userAgent.substring(0, 80));
+console.log('==========================');
 
 // ── State ──────────────────────────────────────────────────
 let token = localStorage.getItem('cakrawala_token');
@@ -396,26 +399,32 @@ initOfflineDb().catch(console.error);
 async function doLogin() {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
     
     if (!email || !password) {
-        document.getElementById('loginError').textContent = 'Email dan password wajib diisi';
-        document.getElementById('loginError').style.display = 'block';
+        errorEl.textContent = 'Email dan password wajib diisi';
+        errorEl.style.display = 'block';
         return;
     }
     
-    const btn = document.getElementById('loginBtn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="loading"></span>';
-    document.getElementById('loginError').style.display = 'none';
+    btn.textContent = 'Memproses...';
+    errorEl.style.display = 'none';
+    
+    const apiUrl = API_BASE_URL + '/api/auth/login';
+    console.log('Login attempt:', apiUrl);
     
     try {
-        console.log('Attempting login to:', API_BASE_URL + '/api/auth/login');
-        const data = await api('/auth/login', { 
-            method: 'POST', 
-            body: JSON.stringify({ email, password }) 
+        const res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ email, password })
         });
         
-        console.log('Login response:', data);
+        console.log('Response status:', res.status);
+        const data = await res.json();
+        console.log('Response data:', JSON.stringify(data).substring(0, 200));
         
         if (data?.token) {
             token = data.token;
@@ -427,33 +436,17 @@ async function doLogin() {
             showToast('Login berhasil!');
             initApp();
         } else {
-            // Try offline login
-            tryOfflineLogin(email, password);
+            errorEl.textContent = data?.error || 'Email atau password salah';
+            errorEl.style.display = 'block';
         }
     } catch (err) {
         console.error('Login error:', err);
-        // Try offline login
-        tryOfflineLogin(email, password);
+        errorEl.textContent = 'Gagal koneksi: ' + err.message;
+        errorEl.style.display = 'block';
     }
     
     btn.disabled = false;
     btn.textContent = 'Masuk';
-}
-
-function tryOfflineLogin(email, password) {
-    const cachedUser = localStorage.getItem('cakrawala_user');
-    const cachedEmail = localStorage.getItem('cakrawala_email');
-    const cachedPassword = localStorage.getItem('cakrawala_password');
-    
-    if (cachedUser && cachedEmail === email && cachedPassword === password) {
-        user = JSON.parse(cachedUser);
-        token = localStorage.getItem('cakrawala_token');
-        showToast('Login offline berhasil!');
-        initApp();
-    } else {
-        document.getElementById('loginError').textContent = 'Email atau password salah (atau tidak ada internet)';
-        document.getElementById('loginError').style.display = 'block';
-    }
 }
 function doLogout() { token = null; user = null; localStorage.clear(); document.getElementById('loginPage').style.display = 'flex'; document.getElementById('appLayout').style.display = 'none'; }
 

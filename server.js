@@ -69,7 +69,15 @@ function dbAll(sql, params = []) {
 // ── Express App ───────────────────────────────────────────────
 
 const app = express();
-app.use(cors());
+
+// CORS - izinkan semua origin (termasuk Capacitor/Android)
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    credentials: false
+}));
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 

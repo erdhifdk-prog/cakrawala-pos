@@ -28,15 +28,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Set API URL for APK
-        run: |
-          echo '// API Server URL untuk APK' > public/api-config.js
-          echo 'const API_SERVER = "https://kasir.internetproject.web.id";' >> public/api-config.js
-
       - name: Initialize Capacitor
         run: |
           npx cap init "Cakrawala POS" com.cakrawala.pos --web-dir public
           npx cap add android
+          
+          # Copy network security config
+          mkdir -p android/app/src/main/res/xml
+          cp android/app/src/main/res/xml/network_security_config.xml android/app/src/main/res/xml/ 2>/dev/null || true
 
       - name: Sync web assets to Android
         run: npx cap sync android

@@ -30,14 +30,16 @@ jobs:
 
       - name: Initialize Capacitor
         run: |
-          npx cap init "Cakrawala POS" com.cakrawala.pos --web-dir public || true
-          npx cap add android || true
+          # Remove existing android dir if present
+          rm -rf android
           
-          # Copy network security config if not exists
-          if [ ! -f android/app/src/main/res/xml/network_security_config.xml ]; then
-            mkdir -p android/app/src/main/res/xml
-            cp android/app/src/main/res/xml/network_security_config.xml android/app/src/main/res/xml/ 2>/dev/null || true
-          fi
+          # Initialize Capacitor
+          npx cap init "Cakrawala POS" com.cakrawala.pos --web-dir public
+          npx cap add android
+          
+          # Copy network security config
+          mkdir -p android/app/src/main/res/xml
+          cp network_security_config.xml android/app/src/main/res/xml/ 2>/dev/null || true
 
       - name: Sync web assets to Android
         run: npx cap sync android

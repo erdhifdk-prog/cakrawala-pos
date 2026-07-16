@@ -30,20 +30,9 @@ jobs:
 
       - name: Initialize Capacitor
         run: |
-          # Remove existing android dir if present
           rm -rf android
-          
-          # Initialize Capacitor
           npx cap init "Cakrawala POS" com.cakrawala.pos --web-dir public
           npx cap add android
-          
-          # Copy network security config
-          mkdir -p android/app/src/main/res/xml
-          cp network_security_config.xml android/app/src/main/res/xml/
-          
-          # Update AndroidManifest to use network security config
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i 's|<application|<application android:networkSecurityConfig="@xml/network_security_config"|' $MANIFEST
 
       - name: Sync web assets to Android
         run: npx cap sync android

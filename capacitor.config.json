@@ -3,6 +3,8 @@
     "appName": "Cakrawala POS",
     "webDir": "public",
     "server": {
+        "url": "https://kasir.internetproject.web.id",
+        "cleartext": true,
         "androidScheme": "https",
         "allowNavigation": ["*.internetproject.web.id", "10.20.20.76"]
     },

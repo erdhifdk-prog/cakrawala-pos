@@ -3,9 +3,9 @@
     "appName": "Cakrawala POS",
     "webDir": "public",
     "server": {
+        "url": "https://kasir.internetproject.web.id",
         "androidScheme": "https",
-        "cleartext": true,
-        "allowNavigation": ["*.internetproject.web.id", "10.20.20.76"]
+        "cleartext": true
     },
     "android": {
         "buildOptions": {
